@@ -393,7 +393,7 @@ class OpenSSLCertIssuer:
 class NewServerCommand(Command):
     def __init__(self):
         super().__init__('srvcrt')
-        self.help_msg = '       srvcrt --ca <caname> --cn <name> [<name>, ...] --pem <pemfile> --pfx <pfxfile> [--cdp]\n'
+        self.help_msg = '       srvcrt --ca <caname> --cn <name> [<name>, ...] --pem <pemfile> --pfx <pfxfile> [--cdp] [--split]\n'
     
     def __parse_args_alt(self, args):
         parser = argparse.ArgumentParser("minica srvcrt command", "minica srvcrt <options>", "Create a new TLS server certificate")
