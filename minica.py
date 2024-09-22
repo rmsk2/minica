@@ -123,10 +123,26 @@ class INIFile:
                 self.__write_section(section, file)
 
 
+def type_new_secret(type):
+    pass1 = getpass.getpass(f'{type} Password: ')
+    pass2 = getpass.getpass(f'{type} Password (verification): ')
+    
+    if pass1 != pass2:
+        raise(SSLCAException('Passwords different. Aborting!'))
+    
+    return pass1
+
+
+def type_existing_secret(type):
+    return getpass.getpass(f'{type} Password: ')
+
+
 class SecretGetterRepo:
     def __init__(self):
         self._repo = {}
         self._current = None
+        self.add("default", type_existing_secret, type_new_secret)
+        self.set_current("default")
 
     def add(self, id, get_f, get_new_f):
         self._repo[id] = (get_f, get_new_f)
@@ -696,9 +712,7 @@ def main(argv):
     commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand(), help]
     help.set_commands(commands)
     
-    Command.repo.add("default", Command.type_existing_secret, Command.type_new_secret)
     #Command.repo.add("dummy", lambda t: "e", lambda t: "e")
-    Command.repo.set_current("default")
     #Command.repo.set_current("dummy")
 
     if len(argv) == 1:
