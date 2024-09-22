@@ -156,7 +156,7 @@ class Command:
 
     @staticmethod    
     def print_exception(e):
-        if 'minica_VERB' in os.environ.keys():
+        if 'MINICA_VERB' in os.environ.keys():
             traceback.print_exc()
         else:
             print(e)
