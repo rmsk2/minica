@@ -123,25 +123,11 @@ class INIFile:
                 self.__write_section(section, file)
 
 
-def type_new_secret(type):
-    pass1 = getpass.getpass(f'{type} Password: ')
-    pass2 = getpass.getpass(f'{type} Password (verification): ')
-    
-    if pass1 != pass2:
-        raise(SSLCAException('Passwords different. Aborting!'))
-    
-    return pass1
-
-
-def type_existing_secret(type):
-    return getpass.getpass(f'{type} Password: ')
-
-
 class SecretGetterRepo:
     def __init__(self):
         self._repo = {}
         self._current = None
-        self.add("default", type_existing_secret, type_new_secret)
+        self.add("default", self.type_existing_secret, self.type_new_secret)
         self.set_current("default")
 
     def add(self, id, get_f, get_new_f):
@@ -152,6 +138,18 @@ class SecretGetterRepo:
     
     def get_current(self):
         return self._repo[self._current]
+
+    def type_new_secret(self, type):
+        pass1 = getpass.getpass(f'{type} Password: ')
+        pass2 = getpass.getpass(f'{type} Password (verification): ')
+        
+        if pass1 != pass2:
+            raise(SSLCAException('Passwords different. Aborting!'))
+        
+        return pass1
+
+    def type_existing_secret(self, type):
+        return getpass.getpass(f'{type} Password: ')
 
 
 class Command:
