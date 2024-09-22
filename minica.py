@@ -123,14 +123,27 @@ class INIFile:
                 self.__write_section(section, file)
 
 
+class SecretGetterRepo:
+    def __init__(self):
+        self._repo = {}
+        self._current = None
+
+    def add(self, id, get_f, get_new_f):
+        self._repo[id] = (get_f, get_new_f)
+    
+    def set_current(self, id):
+        self._current = id
+    
+    def get_current(self):
+        return self._repo[self._current]
+
+
 class Command:
+    repo = SecretGetterRepo()
+
     def __init__(self, command_string):
         self.command = command_string
         self.__help_string = ""
-        #self.get_new_secret_func = lambda t: "e"
-        #self.get_secret_func = lambda t: "e"
-        self.get_new_secret_func = Command.type_new_secret
-        self.get_secret_func = Command.type_existing_secret
 
     def recognize(self, args):
         if len(args) != 0:
@@ -139,6 +152,12 @@ class Command:
             result = False
         
         return result
+
+    def get_new_secret_func(self, type):
+        Command.repo.get_current()[1](type)
+
+    def get_secret_func(self, type):
+        Command.repo.get_current()[0](type)
 
     @staticmethod
     def type_new_secret(type):
@@ -677,6 +696,11 @@ def main(argv):
     commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand(), help]
     help.set_commands(commands)
     
+    Command.repo.add("default", Command.type_existing_secret, Command.type_new_secret)
+    #Command.repo.add("dummy", lambda t: "e", lambda t: "e")
+    Command.repo.set_current("default")
+    #Command.repo.set_current("dummy")
+
     if len(argv) == 1:
         exit_code = help.process(argv)
     else:
