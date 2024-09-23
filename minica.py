@@ -25,6 +25,7 @@ CLIENT_KEY_BITS = 3072
 MAIL_KEY_BITS = 3072
 END_ENTITY_VALID_DAYS = 365
 ROOT_VALID_YEARS = 5
+ROOT_SERIAL = 1
 CRL_VALID_DAYS = 30
 DEFAULT_COUNTRY = 'DE'
 DEFAULT_OU = 'Wohnzimmer'
@@ -257,6 +258,14 @@ class NewCommand(Command):
 
         return parser.parse_args(args[1:])
 
+    def __gen_serial(self, root_serial):
+        h = hex(root_serial + 1)[2:]
+        
+        if (len(h) % 2) != 0:
+            h = f"0{h}"
+        
+        return h
+
     def __make_dir(self, dir_name, org_name):        
         os.mkdir(CA_HOME_DIRECTORY / dir_name, 0o700)
         os.mkdir(CA_HOME_DIRECTORY / dir_name / 'private', 0o700)
@@ -265,7 +274,7 @@ class NewCommand(Command):
         os.mkdir(CA_HOME_DIRECTORY / dir_name / 'temp', 0o700)
         
         with open(CA_HOME_DIRECTORY / dir_name / 'private'/ 'serial.txt', "wb") as serial_number_file:
-            serial_number_file.write('02\n'.encode('ascii'))
+            serial_number_file.write(self.__gen_serial(ROOT_SERIAL).encode('ascii'))
 
         with open(CA_HOME_DIRECTORY / dir_name / 'crls'/ 'crlnumber.txt', "wb") as crl_number_file:
             # The CRL number is in hex
@@ -307,7 +316,7 @@ class NewCommand(Command):
         print('Done!')        
         print('Creating root certificate ....')
                             
-        serial = 1
+        serial = ROOT_SERIAL
         validity = ROOT_VALID_YEARS * 365
         
         exts = 'ca_extensions'
