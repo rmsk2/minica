@@ -125,19 +125,26 @@ class INIFile:
 
 class SecretGetterRepo:
     def __init__(self):
-        self._repo = {}
-        self._current = None
-        self.add("default", self.type_existing_secret, self.type_new_secret)
-        self.set_current("default")
+        self.reset()
 
     def add(self, id, get_f, get_new_f):
         self._repo[id] = (get_f, get_new_f)
     
-    def set_current(self, id):
-        self._current = id
-    
+    @property
+    def current(self):
+        return self._current
+
+    @current.setter
+    def current(self, value):
+        self._current = value
+
     def get_current(self):
-        return self._repo[self._current]
+        return self._repo[self.current]
+
+    def reset(self):
+        self._repo = {}
+        self.current = "default"
+        self.add("default", self.type_existing_secret, self.type_new_secret)
 
     def type_new_secret(self, type):
         pass1 = getpass.getpass(f'{type} Password: ')
@@ -152,9 +159,10 @@ class SecretGetterRepo:
         return getpass.getpass(f'{type} Password: ')
 
 
-class Command:
-    repo = SecretGetterRepo()
+REPO = SecretGetterRepo()
 
+
+class Command:
     def __init__(self, command_string):
         self.command = command_string
         self.__help_string = ""
@@ -168,10 +176,10 @@ class Command:
         return result
 
     def get_new_secret_func(self, type):
-        Command.repo.get_current()[1](type)
+        REPO.get_current()[1](type)
 
     def get_secret_func(self, type):
-        Command.repo.get_current()[0](type)
+        REPO.get_current()[0](type)
 
     @staticmethod
     def type_new_secret(type):
@@ -319,10 +327,13 @@ class NewCommand(Command):
         
         print('Done!')        
 
+    def make_new(self, ca, org, rootcert):
+        self.__make_dir(ca, org)
+        self.__make_root(ca, rootcert)
+
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
-        self.__make_dir(params.ca, params.org)
-        self.__make_root(params.ca, params.rootcert)
+        self.make_new(params.ca, params.org, params.rootcert)
 
 
 class FileCleaner:
@@ -465,7 +476,7 @@ class NewServerCommand(Command):
 
         return ini        
 
-    def __make_server_cert(self, ca_name, common_names, key_file_out, pfx_file, cdp, split_pem):
+    def make_server_cert(self, ca_name, common_names, key_file_out, pfx_file, cdp, split_pem):
         issuer = OpenSSLCertIssuer(ca_name, self)
         issuer.common_names = common_names
         issuer.key_bits = SERVER_KEY_BITS
@@ -475,7 +486,7 @@ class NewServerCommand(Command):
 
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
-        self.__make_server_cert(params.ca, params.cn, params.pem, params.pfx, params.cdp, params.split)
+        self.make_server_cert(params.ca, params.cn, params.pem, params.pfx, params.cdp, params.split)
 
 
 class NewClientCommand(Command):
@@ -509,7 +520,7 @@ class NewClientCommand(Command):
 
         return ini 
 
-    def __make_client_cert(self, ca_name, common_name, p12_file_name, cdp):
+    def make_client_cert(self, ca_name, common_name, p12_file_name, cdp):
         issuer = OpenSSLCertIssuer(ca_name, self)
         issuer.key_bits = CLIENT_KEY_BITS
         issuer.common_names = [common_name]
@@ -519,7 +530,7 @@ class NewClientCommand(Command):
 
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
-        self.__make_client_cert(params.ca, params.cn, params.pfx, params.cdp)
+        self.make_client_cert(params.ca, params.cn, params.pfx, params.cdp)
 
 
 class NewMailCommand(Command):
@@ -563,7 +574,7 @@ class NewMailCommand(Command):
 
         return ini
 
-    def __make_mail_cert(self, ca_name, common_name, mailaddress, cert_type, p12_file_name, cdp):
+    def make_mail_cert(self, ca_name, common_name, mailaddress, cert_type, p12_file_name, cdp):
         issuer = OpenSSLCertIssuer(ca_name, self)
         issuer.common_names = [common_name]
         issuer.write_pem = False
@@ -576,7 +587,7 @@ class NewMailCommand(Command):
 
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
-        self.__make_mail_cert(params.ca, params.cn, params.mail, params.type, params.pfx, params.cdp)
+        self.make_mail_cert(params.ca, params.cn, params.mail, params.type, params.pfx, params.cdp)
 
 
 class MakeCRLCommand(Command):
@@ -590,7 +601,7 @@ class MakeCRLCommand(Command):
 
         return parser.parse_args(args[1:])
     
-    def __make_crl(self, ca_name):
+    def make_crl(self, ca_name):
         ca_cfg_file = CA_HOME_DIRECTORY / ca_name / 'temp' / 'ca.cnf'
         
         cleaner = FileCleaner([ca_cfg_file])
@@ -612,7 +623,7 @@ class MakeCRLCommand(Command):
     
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
-        self.__make_crl(params.ca)
+        self.make_crl(params.ca)
 
 
 class MakeRevokeCommand(Command):
@@ -627,7 +638,7 @@ class MakeRevokeCommand(Command):
 
         return parser.parse_args(args[1:])
     
-    def __make_revoke(self, ca_name, certfile):
+    def make_revoke(self, ca_name, certfile):
         ca_config_file = CA_HOME_DIRECTORY / ca_name / 'temp' / 'ca.cnf'
         created_files = [ca_config_file]
         
@@ -651,7 +662,7 @@ class MakeRevokeCommand(Command):
     
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
-        self.__make_revoke(params.ca, params.serial)
+        self.make_revoke(params.ca, params.serial)
 
 
 class ShowCommand(Command):
@@ -666,7 +677,7 @@ class ShowCommand(Command):
 
         return parser.parse_args(args[1:])
 
-    def __make_show(self, ca_name, certfile):
+    def make_show(self, ca_name, certfile):
         cert_file_to_show = CA_HOME_DIRECTORY / ca_name / 'certs' / f"{certfile}.pem"
 
         ret_code = os.system(f'openssl x509 -in "{cert_file_to_show}" -text')
@@ -675,7 +686,7 @@ class ShowCommand(Command):
 
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
-        self.__make_show(params.ca, params.serial)
+        self.make_show(params.ca, params.serial)
 
 
 class ListCommand(Command):
@@ -689,7 +700,7 @@ class ListCommand(Command):
 
         return parser.parse_args(args[1:])
 
-    def __make_list(self, ca_name):
+    def make_list(self, ca_name):
         ca_index_file = CA_HOME_DIRECTORY / ca_name / 'private' / 'index.txt'
         
         with open(ca_index_file, "r") as f:
@@ -700,7 +711,7 @@ class ListCommand(Command):
 
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
-        self.__make_list(params.ca)
+        self.make_list(params.ca)
 
 
 def main(argv):
@@ -710,8 +721,8 @@ def main(argv):
     commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand(), help]
     help.set_commands(commands)
     
-    #Command.repo.add("dummy", lambda t: "e", lambda t: "e")
-    #Command.repo.set_current("dummy")
+    #REPO.add("dummy", lambda t: "e", lambda t: "e")
+    #REPO.current = "dummy"
 
     if len(argv) == 1:
         exit_code = help.process(argv)
