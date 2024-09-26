@@ -247,11 +247,11 @@ class HelpCommand(Command):
 
 class NewCommand(Command):
     def __init__(self):
-        super().__init__('newca')
-        self.help_msg = '       newca --ca <name> --org <orgname> --rootcert <filename>\n'
+        super().__init__('new')
+        self.help_msg = '       new --ca <name> --org <orgname> --rootcert <filename>\n'
 
     def __parse_args_alt(self, args):
-        parser = argparse.ArgumentParser("minica newca command", "minica newca <options>", "Create a new CA with the specified name")
+        parser = argparse.ArgumentParser("minica new command", "minica new <options>", "Create a new CA with the specified name")
         parser.add_argument("-c", "--ca", required=True, help="Name of the new CA")
         parser.add_argument("-o", "--org", required=True, help="Organisation to use in root certificate")
         parser.add_argument("-r", "--rootcert", required=True, help="File into which a DER version of the root certificate is written")
