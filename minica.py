@@ -723,7 +723,7 @@ class ListCommand(Command):
         self.make_list(params.ca)
 
 
-def main(argv):
+def run_cli(argv):
     exit_code = 0
     help = HelpCommand()
     
@@ -744,4 +744,6 @@ def main(argv):
     
     sys.exit(exit_code)
 
-main(sys.argv)
+
+if __name__ == '__main__':
+    run_cli(sys.argv)
