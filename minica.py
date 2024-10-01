@@ -145,9 +145,10 @@ class SecretGetterRepo:
     def reset(self):
         self._repo = {}
         self.current = "default"
-        self.add("default", self.type_existing_secret, self.type_new_secret)
-
-    def type_new_secret(self, type):
+        self.add("default", SecretGetterRepo.type_existing_secret, SecretGetterRepo.type_new_secret)
+    
+    @staticmethod
+    def type_new_secret(type):
         pass1 = getpass.getpass(f'{type} Password: ')
         pass2 = getpass.getpass(f'{type} Password (verification): ')
         
@@ -155,8 +156,9 @@ class SecretGetterRepo:
             raise(SSLCAException('Passwords different. Aborting!'))
         
         return pass1
-
-    def type_existing_secret(self, type):
+    
+    @staticmethod
+    def type_existing_secret(type):
         return getpass.getpass(f'{type} Password: ')
 
 
@@ -181,20 +183,6 @@ class Command:
 
     def get_secret_func(self, type):
         REPO.get_current()[0](type)
-
-    @staticmethod
-    def type_new_secret(type):
-        pass1 = getpass.getpass(f'{type} Password: ')
-        pass2 = getpass.getpass(f'{type} Password (verification): ')
-        
-        if pass1 != pass2:
-            raise(SSLCAException('Passwords different. Aborting!'))
-        
-        return pass1
-
-    @staticmethod
-    def type_existing_secret(type):
-        return getpass.getpass(f'{type} Password: ')
 
     @staticmethod    
     def print_exception(e):
