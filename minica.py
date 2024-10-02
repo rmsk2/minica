@@ -9,6 +9,7 @@ import pathlib
 import traceback
 import argparse
 import shutil
+import subprocess
 
 ERR_OK = 0
 ERR_NOT_OK = 100
@@ -122,6 +123,39 @@ class INIFile:
         with open(out_file_name, "wb") as file:                
             for section in self.__sections:
                 self.__write_section(section, file)
+
+
+class CmdExecutor:
+    def __init__(self, allow_output = False):
+        self._error_str = ""
+        self._allow_output = allow_output
+
+    @property
+    def allow_output(self):
+        return self._allow_output
+    
+    @allow_output.setter
+    def allow_output(self, value):
+        self._allow_output = value
+
+    @property
+    def exception_str(self):
+        return self._error_str
+
+    @exception_str.setter
+    def exception_str(self, value):
+        self._error_str = value
+
+    def execute_command(self, command_str):
+        out_channel = None
+        
+        with open(os.devnull, "wb") as nothing:
+            if not self.allow_output:
+                out_channel = nothing
+
+            ret_code = subprocess.call(command_str, shell=True, stdout=out_channel, stderr=out_channel)
+            if ret_code != 0:
+                raise(SSLCAException(self.exception_str))
 
 
 class SecretGetterRepo:
@@ -261,12 +295,9 @@ class NewCommand(Command):
         os.mkdir(CA_HOME_DIRECTORY / dir_name / 'crls', 0o700)
         os.mkdir(CA_HOME_DIRECTORY / dir_name / 'temp', 0o700)
         
-        with open(CA_HOME_DIRECTORY / dir_name / 'private'/ 'serial.txt', "wb") as serial_number_file:
-            serial_number_file.write(self.__gen_serial(ROOT_SERIAL).encode('ascii'))
-
-        with open(CA_HOME_DIRECTORY / dir_name / 'crls'/ 'crlnumber.txt', "wb") as crl_number_file:
-            # The CRL number is in hex
-            crl_number_file.write('1000\n'.encode('ascii'))
+        (CA_HOME_DIRECTORY / dir_name / 'private' / 'serial.txt').write_text(self.__gen_serial(ROOT_SERIAL))
+        # The CRL number is in hex
+        (CA_HOME_DIRECTORY / dir_name / 'crls' / 'crlnumber.txt').write_text('1000')
 
         with open(CA_HOME_DIRECTORY / dir_name  / 'private' / 'index.txt', "wb") as index_file:
             # simply create file
@@ -289,17 +320,18 @@ class NewCommand(Command):
         ini.write(CA_HOME_DIRECTORY / dir_name / 'private' / 'newca.cnf')
     
     def __make_root(self, dir_name, rootcert_filename):
+        exc = CmdExecutor()
         password = self.get_new_secret_func(SEC_TYPE_CA)     
         
-        print('Generating CA private-key ....')
+        print('Generating CA key pair ....')
 
         ca_key_file = CA_HOME_DIRECTORY / dir_name / 'private' / 'CAkey.pem'
         ca_cert_file = CA_HOME_DIRECTORY / dir_name / 'private' / 'CAcert.pem'
         cfg_file = CA_HOME_DIRECTORY / dir_name / 'private' / 'newca.cnf'
 
-        ret_code = os.system(f'openssl genrsa -out "{ca_key_file}" -passout "pass:{password}" -aes256 -f4 {CA_KEY_BITS}')
-        if ret_code != 0:
-            raise(SSLCAException('Unable to generate private CA Key'))
+        cmd = f'openssl genrsa -out "{ca_key_file}" -passout "pass:{password}" -aes256 -f4 {CA_KEY_BITS}'
+        exc.exception_str = 'Unable to generate private CA Key'
+        exc.execute_command(cmd)
         
         print('Done!')        
         print('Creating root certificate ....')
@@ -308,19 +340,17 @@ class NewCommand(Command):
         validity = ROOT_VALID_YEARS * 365
         
         exts = 'ca_extensions'
-        cmd = f'openssl req -new -x509 -out "{ca_cert_file}" -key "{ca_key_file}" -days {validity} -set_serial {serial} -extensions {exts} -passin "pass:{password}" -config "{cfg_file}"'
-        
-        ret_code = os.system(cmd)
-        if ret_code != 0:
-            raise(SSLCAException('Unable to create root certificate'))
+
+        cmd = f'openssl req -new -x509 -out "{ca_cert_file}" -key "{ca_key_file}" -days {validity} -set_serial {serial} -extensions {exts} -passin "pass:{password}" -config "{cfg_file}"'        
+        exc.exception_str = 'Unable to create root certificate'
+        exc.execute_command(cmd)
         
         print('Done!')
-        print(f'Copying root certificte in DER format to "{rootcert_filename}"')
+        print(f"Copying root certificte in DER format to '{rootcert_filename}'")
         
         cmd = f'openssl x509 -in "{ca_cert_file}" -outform DER -out "{rootcert_filename}"'        
-        ret_code = os.system(cmd)
-        if ret_code != 0:
-            raise(SSLCAException('Unable to convert root cert to DER'))
+        exc.exception_str = 'Unable to convert root cert to DER'
+        exc.execute_command(cmd)
         
         print('Done!')        
 
@@ -370,6 +400,7 @@ class OpenSSLCertIssuer:
         self.add_cdp(ext_section)
 
     def issue_cert(self, key_file_out, pfx_file, ini_modifier):
+        exc = CmdExecutor()
         ca_cfg_file = CA_HOME_DIRECTORY / self.ca_name / 'private' / 'newca.cnf'
         cert_cfg_file = CA_HOME_DIRECTORY / self.ca_name / 'temp' / 'newcert.cnf'
         key_file = CA_HOME_DIRECTORY / self.ca_name / 'temp' / 'server.pem'
@@ -389,41 +420,34 @@ class OpenSSLCertIssuer:
             pass1 = self.secret_getter.get_secret_func(SEC_TYPE_CA)                        
             p12_pass1 = self.secret_getter.get_new_secret_func(SEC_TYPE_P12)
             
-            print('Generating private-key ....')
-            ret_code = os.system(f'openssl genrsa -out "{key_file}" -f4 {self.key_bits}')
-            if ret_code != 0:
-                raise(SSLCAException('Generating private-key failed'))
+            print('Generating key pair ....')
+
+            cmd = f'openssl genrsa -out "{key_file}" -f4 {self.key_bits}'
+            exc.exception_str = 'Generating private-key failed'
+            exc.execute_command(cmd)
             
             print('Done!')        
-            print('Creating certificate ....')
-            
+            print(f"Issuing certificate for '{self.common_names[0]}' ...")
+
             cmd = f'openssl req -new -out "{p10_request_file}" -key "{key_file}" -config "{cert_cfg_file}"'
-            ret_code = os.system(cmd)
-            if ret_code != 0:
-                raise(SSLCAException('Creating CSR failed failed'))
+            exc.exception_str = 'Creating CSR failed failed'
+            exc.execute_command(cmd)
             
             cmd = f'openssl ca -notext -config "{cert_cfg_file}" -in "{p10_request_file}" -out "{cert_file}" -passin "pass:{pass1}" -extensions {self.extensions_section} -name CA_default -batch'
-            ret_code = os.system(cmd)
-            if ret_code != 0:
-                raise(SSLCAException('Issuing certificate failed'))
+            exc.exception_str = 'Issuing certificate failed'
+            exc.execute_command(cmd)
                 
             cmd = f'openssl pkcs12 -inkey "{key_file}" -in "{cert_file}" -export -password "pass:{p12_pass1}" -out {pfx_file}'
-            ret_code = os.system(cmd)
-            if ret_code != 0:
-                raise(SSLCAException('Creating PFX file failed'))            
+            exc.exception_str = 'Creating PFX file failed'
+            exc.execute_command(cmd)            
             
             print('Done!')
             
             if self.write_pem:
                 if not self.split_pem:
-                    with open(key_file, 'rb') as pri_key_f:
-                        pri_key = pri_key_f.read()
-                    
-                    with open(cert_file, 'rb') as cert_f:
-                        cert = cert_f.read()
-                    
-                    with open(key_file_out, 'wb') as res_f:
-                        res_f.write(pri_key + cert)            
+                    pri_key = key_file.read_bytes()                    
+                    cert = cert_file.read_bytes()                    
+                    pathlib.Path(key_file_out).write_bytes(pri_key + cert)
                 else:
                     shutil.copyfile(key_file, f"{key_file_out}_key.pem")
                     shutil.copyfile(cert_file, f"{key_file_out}_crt.pem")
@@ -595,10 +619,12 @@ class MakeCRLCommand(Command):
     def __parse_args_alt(self, args):
         parser = argparse.ArgumentParser("OpenSSL CA create  CRL command", "minica crl <options>", "Create a new CRL for the CA")
         parser.add_argument("-c", "--ca", required=True, help="Name of the CA")
+        parser.add_argument("-o", "--out", required=False, help="File name of CRL. crl.pem if not specified.")
 
         return parser.parse_args(args[1:])
     
-    def make_crl(self, ca_name):
+    def make_crl(self, ca_name, out_file):
+        exc = CmdExecutor()
         ca_cfg_file = CA_HOME_DIRECTORY / ca_name / 'temp' / 'ca.cnf'
         
         cleaner = FileCleaner([ca_cfg_file])
@@ -610,9 +636,9 @@ class MakeCRLCommand(Command):
                         
             print('Generating CRL ....')
 
-            ret_code = os.system(f'openssl ca -config "{ca_cfg_file}" -passin "pass:{pass1}" -name CA_default -gencrl -out crl.pem')
-            if ret_code != 0:
-                raise(SSLCAException('Generating CRL failed'))
+            cmd = f'openssl ca -config "{ca_cfg_file}" -passin "pass:{pass1}" -name CA_default -gencrl -out {out_file}'
+            exc.exception_str = 'Generating CRL failed'
+            exc.execute_command(cmd)
             
             print('Done!')                        
         finally:
@@ -620,7 +646,12 @@ class MakeCRLCommand(Command):
     
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
-        self.make_crl(params.ca)
+        out_file_name = 'crl.pem'
+
+        if (params.out != "") and (params.out != None):
+            out_file_name = params.out
+
+        self.make_crl(params.ca, out_file_name)
 
 
 class MakeRevokeCommand(Command):
@@ -636,6 +667,7 @@ class MakeRevokeCommand(Command):
         return parser.parse_args(args[1:])
     
     def make_revoke(self, ca_name, certfile):
+        exc = CmdExecutor()
         ca_config_file = CA_HOME_DIRECTORY / ca_name / 'temp' / 'ca.cnf'
         created_files = [ca_config_file]
         
@@ -649,9 +681,9 @@ class MakeRevokeCommand(Command):
             print('Revoking cert ....')
             cert_file_to_revoke = CA_HOME_DIRECTORY / ca_name / 'certs' / f"{certfile}.pem"
 
-            ret_code = os.system(f'openssl ca -config "{ca_config_file}" -name CA_default -passin "pass:{pass1}" -revoke "{cert_file_to_revoke}"')
-            if ret_code != 0:
-                raise(SSLCAException(f'Revocation of cert "{cert_file_to_revoke}" failed'))
+            cmd = f'openssl ca -config "{ca_config_file}" -name CA_default -passin "pass:{pass1}" -revoke "{cert_file_to_revoke}"'
+            exc.exception_str = f'Revocation of cert "{cert_file_to_revoke}" failed'
+            exc.execute_command(cmd)
             
             print('Done!')   
         finally:
@@ -675,11 +707,12 @@ class ShowCommand(Command):
         return parser.parse_args(args[1:])
 
     def make_show(self, ca_name, certfile):
+        exc = CmdExecutor(True)
         cert_file_to_show = CA_HOME_DIRECTORY / ca_name / 'certs' / f"{certfile}.pem"
 
-        ret_code = os.system(f'openssl x509 -in "{cert_file_to_show}" -text')
-        if ret_code != 0:
-            raise(SSLCAException(f'Parsing cert "{cert_file_to_show}" failed'))
+        cmd = f'openssl x509 -in "{cert_file_to_show}" -text'
+        exc.exception_str = f'Parsing cert "{cert_file_to_show}" failed'
+        exc.execute_command(cmd)
 
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
@@ -718,9 +751,6 @@ def run_cli(argv):
     commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand(), help]
     help.set_commands(commands)
     
-    #REPO.add("dummy", lambda t: "e", lambda t: "e")
-    #REPO.current = "dummy"
-
     if len(argv) == 1:
         exit_code = help.process(argv)
     else:
