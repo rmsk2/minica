@@ -33,6 +33,7 @@ DEFAULT_OU = 'Wohnzimmer'
 DEFAULT_HASH = 'sha256'
 CA_BASE_DIR = './SSL-CA/'
 CDP_URL = 'http://test/ca/crl.crl'
+SHOW_OPENSSL = False
 ###############################################
 
 
@@ -126,7 +127,7 @@ class INIFile:
 
 
 class CmdExecutor:
-    def __init__(self, allow_output = False):
+    def __init__(self, allow_output = SHOW_OPENSSL):
         self._error_str = ""
         self._allow_output = allow_output
 
