@@ -33,7 +33,7 @@ DEFAULT_OU = 'Wohnzimmer'
 DEFAULT_HASH = 'sha256'
 CA_BASE_DIR = './SSL-CA/'
 CDP_URL = 'http://test/ca/crl.crl'
-SHOW_OPENSSL = False
+SHOW_OPENSSL_OUTPUT = False
 ###############################################
 
 
@@ -127,7 +127,7 @@ class INIFile:
 
 
 class CmdExecutor:
-    def __init__(self, allow_output = SHOW_OPENSSL):
+    def __init__(self, allow_output = SHOW_OPENSSL_OUTPUT):
         self._error_str = ""
         self._allow_output = allow_output
 
@@ -271,13 +271,13 @@ class HelpCommand(Command):
 class NewCommand(Command):
     def __init__(self):
         super().__init__('new')
-        self.help_msg = '       new --ca <name> --org <orgname> --rootcert <filename>\n'
+        self.help_msg = '       new --ca <name> --org <orgname> [--rootcert <filename>]\n'
 
     def __parse_args_alt(self, args):
         parser = argparse.ArgumentParser("minica new command", "minica new <options>", "Create a new CA with the specified name")
         parser.add_argument("-c", "--ca", required=True, help="Name of the new CA")
         parser.add_argument("-o", "--org", required=True, help="Organisation to use in root certificate")
-        parser.add_argument("-r", "--rootcert", required=True, help="File into which a DER version of the root certificate is written")
+        parser.add_argument("-r", "--rootcert", required=False, help="File into which a DER version of the root certificate is written (optional)")
 
         return parser.parse_args(args[1:])
 
@@ -289,7 +289,7 @@ class NewCommand(Command):
         
         return h
 
-    def __make_dir(self, dir_name, org_name):        
+    def __make_dir(self, dir_name, org_name):
         os.mkdir(CA_HOME_DIRECTORY / dir_name, 0o700)
         os.mkdir(CA_HOME_DIRECTORY / dir_name / 'private', 0o700)
         os.mkdir(CA_HOME_DIRECTORY / dir_name / 'certs', 0o700)
@@ -347,17 +347,36 @@ class NewCommand(Command):
         exc.execute_command(cmd)
         
         print('Done!')
-        print(f"Copying root certificte in DER format to '{rootcert_filename}'")
-        
-        cmd = f'openssl x509 -in "{ca_cert_file}" -outform DER -out "{rootcert_filename}"'        
-        exc.exception_str = 'Unable to convert root cert to DER'
-        exc.execute_command(cmd)
-        
-        print('Done!')        
 
-    def make_new(self, ca, org, rootcert):
-        self.__make_dir(ca, org)
-        self.__make_root(ca, rootcert)
+        if (rootcert_filename != None) and (rootcert_filename != ""):
+            print(f"Copying root certificte in DER format to '{rootcert_filename}'")
+
+            cmd = f'openssl x509 -in "{ca_cert_file}" -outform DER -out "{rootcert_filename}"'
+            exc.exception_str = 'Unable to convert root cert to DER'
+            exc.execute_command(cmd)
+
+            print('Done!')
+
+    def make_new(self, ca, org, rootcert = None):
+        ca_dir = CA_HOME_DIRECTORY / ca
+        ca_key_file = ca_dir / 'private' / 'CAkey.pem'
+
+        # Make sure we do not overwrite an existing private key
+        if ca_key_file.exists():
+            raise SSLCAException("CA private key already exists")
+
+        # Check if CA dir exists
+        if ca_dir.is_dir():
+            raise SSLCAException("CA dir already exists")
+
+        try:
+            self.__make_dir(ca, org)
+            self.__make_root(ca, rootcert)
+        except:
+            # The CA did not exist before and something went wrong while creating it
+            # => Perform cleanup
+            shutil.rmtree(ca_dir)
+            raise
 
     def proc_int(self, args):
         params = self.__parse_args_alt(args)
