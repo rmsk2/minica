@@ -32,12 +32,12 @@ DEFAULT_COUNTRY = 'DE'
 DEFAULT_OU = 'Wohnzimmer'
 DEFAULT_HASH = 'sha256'
 CA_BASE_DIR = './SSL-CA/'
+# optional environment variable which specifies path to base dir if set
+CA_ENV = 'SSLCA'
 CDP_URL = 'http://test/ca/crl.crl'
 SHOW_OPENSSL_OUTPUT = False
 ###############################################
 
-
-CA_HOME_DIRECTORY = pathlib.Path(CA_BASE_DIR)
 
 
 class SSLCAException(Exception):
@@ -764,6 +764,15 @@ class ListCommand(Command):
         self.make_list(params.ca)
 
 
+def init():
+    global CA_HOME_DIRECTORY
+    CA_HOME_DIRECTORY = pathlib.Path(CA_BASE_DIR)
+    alt_dir = os.environ.get(CA_ENV)
+
+    if alt_dir != None:
+        CA_HOME_DIRECTORY = pathlib.Path(alt_dir)
+
+
 def run_cli(argv):
     exit_code = 0
     help = HelpCommand()
@@ -782,6 +791,7 @@ def run_cli(argv):
     
     sys.exit(exit_code)
 
+init()
 
 if __name__ == '__main__':
     run_cli(sys.argv)
