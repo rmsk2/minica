@@ -151,11 +151,11 @@ def new_secret(type):
             print(f"PFX password: {pw}")
             return pw
 
-
 def existing_secret(type):
     return CA_PW
 
 minica.REPO.use_new_getters("auto", existing_secret, new_secret)
 ```
 
-
+The `existing_secret()` function does not distinguish between `SEC_TYPE_CA` and `SEC_TYPE_P12` passwords as `minica` never needs to call the 
+secret retrieval function for existing PKCS#12 passwords when issuing a certificate.
