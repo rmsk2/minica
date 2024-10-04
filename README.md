@@ -61,7 +61,7 @@ The serial numbers used in a revocation would be `02`, `03` or `04`. Finally the
 to look at a parsed version of the certificate specified by its serial number, where the serial number is determined in 
 the same way as illustrated above.
 
-# Customizing the bahviour of `minica`
+# Customizing the behaviour of `minica`
 
 The following defaults are defined in the script. Please change them to suit your needs:
 
