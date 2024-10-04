@@ -18,8 +18,11 @@ SEC_TYPE_CA = "CA"
 SEC_TYPE_P12 = "PKCS#12"
 
 
-# Change this to suit your needs
+# Change here to suit your needs
 ###############################################
+#
+# certificate and CRL contents
+#
 CA_KEY_BITS = 4096
 SERVER_KEY_BITS = 3072
 CLIENT_KEY_BITS = 3072
@@ -31,11 +34,15 @@ CRL_VALID_DAYS = 30
 DEFAULT_COUNTRY = 'DE'
 DEFAULT_OU = 'Wohnzimmer'
 DEFAULT_HASH = 'sha256'
-CA_BASE_DIR = './SSL-CA/'
-# optional environment variable which specifies path to base dir if set
-CA_ENV = 'SSLCA'
 CDP_URL = 'http://test/ca/crl.crl'
+#
+# Program config
+#
+CA_BASE_DIR = './SSL-CA/'
+# Name of optional environment variable which specifies path to base dir if set
+CA_ENV = 'MINICA_DIR'
 SHOW_OPENSSL_OUTPUT = False
+SHOW_PROG_OUTPUT = True
 ###############################################
 
 
@@ -177,6 +184,10 @@ class SecretGetterRepo:
     def get_current(self):
         return self._repo[self.current]
 
+    def use_new_getters(self, id, get_f, get_new_f):
+        self.add(id, get_f, get_new_f)
+        self.current = id
+
     def reset(self):
         self._repo = {}
         self.current = "default"
@@ -201,9 +212,10 @@ REPO = SecretGetterRepo()
 
 
 class Command:
-    def __init__(self, command_string):
+    def __init__(self, command_string, print_messages = SHOW_PROG_OUTPUT):
         self.command = command_string
         self.__help_string = ""
+        self.__do_print = print_messages
 
     def recognize(self, args):
         if len(args) != 0:
@@ -212,6 +224,10 @@ class Command:
             result = False
         
         return result
+
+    def report(self, message):
+        if self.__do_print:
+            print(message)
 
     def get_new_secret_func(self, type):
         REPO.get_current()[1](type)
@@ -250,7 +266,7 @@ class HelpCommand(Command):
     def __init__(self):
         super().__init__('help')
         self.commands = []
-        self.help_msg = '       help This command has no options\n'
+        self.help_msg = '       help The help command has no options\n'
     
     def set_commands(self, command_list):
         self.commands = command_list
@@ -269,8 +285,8 @@ class HelpCommand(Command):
     
 
 class NewCommand(Command):
-    def __init__(self):
-        super().__init__('new')
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('new', print_messages)
         self.help_msg = '       new --ca <name> --org <orgname> [--rootcert <filename>]\n'
 
     def __parse_args_alt(self, args):
@@ -324,7 +340,7 @@ class NewCommand(Command):
         exc = CmdExecutor()
         password = self.get_new_secret_func(SEC_TYPE_CA)     
         
-        print('Generating CA key pair ....')
+        self.report('Generating CA key pair ....')
 
         ca_key_file = CA_HOME_DIRECTORY / dir_name / 'private' / 'CAkey.pem'
         ca_cert_file = CA_HOME_DIRECTORY / dir_name / 'private' / 'CAcert.pem'
@@ -334,8 +350,8 @@ class NewCommand(Command):
         exc.exception_str = 'Unable to generate private CA Key'
         exc.execute_command(cmd)
         
-        print('Done!')        
-        print('Creating root certificate ....')
+        self.report('Done!')        
+        self.report('Creating root certificate ....')
                             
         serial = ROOT_SERIAL
         validity = ROOT_VALID_YEARS * 365
@@ -346,16 +362,16 @@ class NewCommand(Command):
         exc.exception_str = 'Unable to create root certificate'
         exc.execute_command(cmd)
         
-        print('Done!')
+        self.report('Done!')
 
         if (rootcert_filename != None) and (rootcert_filename != ""):
-            print(f"Copying root certificte in DER format to '{rootcert_filename}'")
+            self.report(f"Copying root certificte in DER format to '{rootcert_filename}'")
 
             cmd = f'openssl x509 -in "{ca_cert_file}" -outform DER -out "{rootcert_filename}"'
             exc.exception_str = 'Unable to convert root cert to DER'
             exc.execute_command(cmd)
 
-            print('Done!')
+            self.report('Done!')
 
     def make_new(self, ca, org, rootcert = None):
         ca_dir = CA_HOME_DIRECTORY / ca
@@ -396,7 +412,7 @@ class FileCleaner:
 
 
 class OpenSSLCertIssuer:
-    def __init__(self, ca_name, secret_getter):
+    def __init__(self, ca_name, secret_getter, reporter_func):
         self.ca_name = ca_name
         self.write_pem = True
         self.split_pem = False
@@ -406,6 +422,7 @@ class OpenSSLCertIssuer:
         self.extensions_section = ""
         self.include_cdp = False
         self.secret_getter = secret_getter
+        self.__report = reporter_func
 
     def add_cdp(self, ext_section):
         if not self.include_cdp:
@@ -440,14 +457,14 @@ class OpenSSLCertIssuer:
             pass1 = self.secret_getter.get_secret_func(SEC_TYPE_CA)                        
             p12_pass1 = self.secret_getter.get_new_secret_func(SEC_TYPE_P12)
             
-            print('Generating key pair ....')
+            self.__report('Generating key pair ....')
 
             cmd = f'openssl genrsa -out "{key_file}" -f4 {self.key_bits}'
             exc.exception_str = 'Generating private-key failed'
             exc.execute_command(cmd)
             
-            print('Done!')        
-            print(f"Issuing certificate for '{self.common_names[0]}' ...")
+            self.__report('Done!')        
+            self.__report(f"Issuing certificate for '{self.common_names[0]}' ...")
 
             cmd = f'openssl req -new -out "{p10_request_file}" -key "{key_file}" -config "{cert_cfg_file}"'
             exc.exception_str = 'Creating CSR failed failed'
@@ -461,7 +478,7 @@ class OpenSSLCertIssuer:
             exc.exception_str = 'Creating PFX file failed'
             exc.execute_command(cmd)            
             
-            print('Done!')
+            self.__report('Done!')
             
             if self.write_pem:
                 if not self.split_pem:
@@ -476,8 +493,8 @@ class OpenSSLCertIssuer:
 
 
 class NewServerCommand(Command):
-    def __init__(self):
-        super().__init__('srvcrt')
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('srvcrt', print_messages)
         self.help_msg = '       srvcrt --ca <caname> --cn <name> [<name>, ...] --pem <pemfile> --pfx <pfxfile> [--cdp] [--split]\n'
     
     def __parse_args_alt(self, args):
@@ -518,7 +535,7 @@ class NewServerCommand(Command):
         return ini        
 
     def make_server_cert(self, ca_name, common_names, key_file_out, pfx_file, cdp, split_pem):
-        issuer = OpenSSLCertIssuer(ca_name, self)
+        issuer = OpenSSLCertIssuer(ca_name, self, self.report)
         issuer.common_names = common_names
         issuer.key_bits = SERVER_KEY_BITS
         issuer.include_cdp = cdp
@@ -531,8 +548,8 @@ class NewServerCommand(Command):
 
 
 class NewClientCommand(Command):
-    def __init__(self):
-        super().__init__('clientcrt')
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('clientcrt', print_messages)
         self.help_msg = '       clientcrt --ca <caname> --cn <name> --pfx <pfxfile> [--cdp]\n'
 
     def __parse_args_alt(self, args):
@@ -562,7 +579,7 @@ class NewClientCommand(Command):
         return ini 
 
     def make_client_cert(self, ca_name, common_name, p12_file_name, cdp):
-        issuer = OpenSSLCertIssuer(ca_name, self)
+        issuer = OpenSSLCertIssuer(ca_name, self, self.report)
         issuer.key_bits = CLIENT_KEY_BITS
         issuer.common_names = [common_name]
         issuer.write_pem = False
@@ -575,8 +592,8 @@ class NewClientCommand(Command):
 
 
 class NewMailCommand(Command):
-    def __init__(self):
-        super().__init__('mailcrt')
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('mailcrt', print_messages)
         self.help_msg = '       mailcrt --ca <caname> --cn <name> --mail <mail address> --type <encauth|enc|auth> --pfx <pfxfile> [--cdp]\n'
 
     def __parse_args_alt(self, args):
@@ -616,7 +633,7 @@ class NewMailCommand(Command):
         return ini
 
     def make_mail_cert(self, ca_name, common_name, mailaddress, cert_type, p12_file_name, cdp):
-        issuer = OpenSSLCertIssuer(ca_name, self)
+        issuer = OpenSSLCertIssuer(ca_name, self, self.report)
         issuer.common_names = [common_name]
         issuer.write_pem = False
         issuer.key_bits = MAIL_KEY_BITS
@@ -632,8 +649,8 @@ class NewMailCommand(Command):
 
 
 class MakeCRLCommand(Command):
-    def __init__(self):
-        super().__init__('crl')
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('crl', print_messages)
         self.help_msg = '       crl --ca <caname>\n'
     
     def __parse_args_alt(self, args):
@@ -654,13 +671,13 @@ class MakeCRLCommand(Command):
             ini.write(ca_cfg_file)            
             pass1 = self.get_secret_func(SEC_TYPE_CA)
                         
-            print('Generating CRL ....')
+            self.report('Generating CRL ....')
 
             cmd = f'openssl ca -config "{ca_cfg_file}" -passin "pass:{pass1}" -name CA_default -gencrl -out {out_file}'
             exc.exception_str = 'Generating CRL failed'
             exc.execute_command(cmd)
             
-            print('Done!')                        
+            self.report('Done!')                        
         finally:
             cleaner.clean()
     
@@ -675,8 +692,8 @@ class MakeCRLCommand(Command):
 
 
 class MakeRevokeCommand(Command):
-    def __init__(self):
-        super().__init__('revoke')
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('revoke', print_messages)
         self.help_msg = '       revoke --ca <caname> --serial <serial number of cert to revoke>\n'
 
     def __parse_args_alt(self, args):
@@ -698,14 +715,14 @@ class MakeRevokeCommand(Command):
             ini.write(ca_config_file)            
             pass1 = self.get_secret_func(SEC_TYPE_CA)
                         
-            print('Revoking cert ....')
+            self.report('Revoking cert ....')
             cert_file_to_revoke = CA_HOME_DIRECTORY / ca_name / 'certs' / f"{certfile}.pem"
 
             cmd = f'openssl ca -config "{ca_config_file}" -name CA_default -passin "pass:{pass1}" -revoke "{cert_file_to_revoke}"'
             exc.exception_str = f'Revocation of cert "{cert_file_to_revoke}" failed'
             exc.execute_command(cmd)
             
-            print('Done!')   
+            self.report('Done!')   
         finally:
             cleaner.clean()
     
@@ -715,8 +732,8 @@ class MakeRevokeCommand(Command):
 
 
 class ShowCommand(Command):
-    def __init__(self):
-        super().__init__('show')
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('show', print_messages)
         self.help_msg = '       show --ca <caname> --serial <cert_to_revoke>\n'
 
     def __parse_args_alt(self, args):
@@ -740,8 +757,8 @@ class ShowCommand(Command):
 
 
 class ListCommand(Command):
-    def __init__(self):
-        super().__init__('list')
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('list', print_messages)
         self.help_msg = '       list --ca <caname>\n'
 
     def __parse_args_alt(self, args):
@@ -765,19 +782,25 @@ class ListCommand(Command):
 
 
 def init():
-    global CA_HOME_DIRECTORY
-    CA_HOME_DIRECTORY = pathlib.Path(CA_BASE_DIR)
+    set_ca_dir(CA_BASE_DIR)
     alt_dir = os.environ.get(CA_ENV)
 
     if alt_dir != None:
-        CA_HOME_DIRECTORY = pathlib.Path(alt_dir)
+        set_ca_dir(alt_dir)
+
+
+def set_ca_dir(new_dir):
+    global CA_HOME_DIRECTORY
+    CA_HOME_DIRECTORY = pathlib.Path(new_dir)
 
 
 def run_cli(argv):
     exit_code = 0
     help = HelpCommand()
     
-    commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand(), help]
+    commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand()]
+    # help has to be the last command in the list
+    commands.append(help)
     help.set_commands(commands)
     
     if len(argv) == 1:
