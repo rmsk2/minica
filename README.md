@@ -5,7 +5,7 @@ that OpenSSL has to b installed  on your system, and it has to be in the path of
 One can use `minica` as a command line program or directly in Python code after a corresponding `import minica`. 
 It is intended for issuing certificates in a home or lab setting. It is not suited for large deployments.
 Consequently in order to keep things simple the root cert is used to issue end entity certificates without 
-an intermediate CA.
+an intermediate CA. At the moment `minica` only supports RSA.
 
 # The command line interface
 
