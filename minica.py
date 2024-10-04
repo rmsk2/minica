@@ -734,12 +734,12 @@ class MakeRevokeCommand(Command):
 class ShowCommand(Command):
     def __init__(self, print_messages = SHOW_PROG_OUTPUT):
         super().__init__('show', print_messages)
-        self.help_msg = '       show --ca <caname> --serial <cert_to_revoke>\n'
+        self.help_msg = '       show --ca <caname> --serial <serial number of cert to show>\n'
 
     def __parse_args_alt(self, args):
         parser = argparse.ArgumentParser("OpenSSL CA show command", "minica show <options>", "Show/parse certificate with given serial number. The serial number can be determined through the list command.")
         parser.add_argument("-c", "--ca", required=True, help="Name of the CA")
-        parser.add_argument("--serial", required=True, help="Serial number of certificate to revoke")
+        parser.add_argument("--serial", required=True, help="Serial number of certificate to show")
 
         return parser.parse_args(args[1:])
 

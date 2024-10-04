@@ -22,7 +22,7 @@ The following commands are allowed:
        crl --ca <caname>
        revoke --ca <caname> --serial <serial number of cert to revoke>
        list --ca <caname>
-       show --ca <caname> --serial <cert_to_revoke>
+       show --ca <caname> --serial <serial number of cert to show>
        help The help command has no options
 ```
 
