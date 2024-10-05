@@ -95,7 +95,7 @@ SHOW_PROG_OUTPUT = True
 ```
 
 Additionally the following environment variables can be set in order to influence the behaviour of `minica`. If the variable
-`MINICA_VERB` is set a value then the full stack trace of exceptions is propagated and printed to the command line, which
+`MINICA_VERB` is set to a value then the full stack trace of exceptions is propagated and printed to the command line, which
 can be useful to diagnose problems. The variable `MINICA_DIR` can be used to override the value of `CA_BASE_DIR` during 
 runtime.
 
