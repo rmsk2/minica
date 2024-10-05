@@ -3,7 +3,7 @@
 A Python script that allows you to run a mini CA based on OpenSSL. This in turn has the consequence
 that OpenSSL has to b installed  on your system, and it has to be in the path of the user who is calling `minica`.
 One can use `minica` as a command line program or directly in Python code after a corresponding `import minica`. 
-It is intended for issuing certificates in a home or lab setting. It is not suited for large deployments.
+It is intended for issuing certificates in a home or lab setting and is not suited for large deployments.
 Consequently in order to keep things simple the root cert is used to issue end entity certificates without 
 an intermediate CA. At the moment `minica` only supports RSA.
 
@@ -32,7 +32,7 @@ contain subdirectories for serveral CAs. The name of the CA subdirectory is deri
 the `--ca` option. When the option `--rootcert` is present a DER encoded version of the newly created root certificate 
 is copied to the specified file. It can then be used to configure the trust settings of browsers or other software.
 
-The three commands `srvcrt`, `mailcrt` and `clientcrt` can be used to issue TLS server, mail oder TLS client certificates.
+The three commands `srvcrt`, `mailcrt` and `clientcrt` can be used to issue TLS server, S/MIME oder TLS client certificates.
 A server certificate can contain several SANs as specified by the `--cn` option. If the `--cdp` option is present a
 `CRLDistributionPoint` Extension is included in the certificate which points browsers or other software to a HTTP URL 
 where a Certificate Revocation List of the CA can be found (see below on how to set this URL and how to create a CRL). 
