@@ -635,7 +635,7 @@ class ChangeCAPwCommand(Command):
             new_password = self.get_new_secret_func(SEC_TYPE_CA)
 
             cmd = f'openssl rsa -in "{temp_file}" -passout "pass:{new_password}" -aes256 -out "{ca_pri_key_file}"'
-            exc.exception_str = 'Encryptng CA private key failed'
+            exc.exception_str = 'Encrypting CA private key failed'
             exc.execute_command(cmd)
 
             self.report("Done!")
