@@ -160,4 +160,4 @@ minica.REPO.use_new_getters("auto", existing_secret, new_secret)
 
 The `existing_secret()` function does not distinguish between `SEC_TYPE_CA` and `SEC_TYPE_P12` passwords as `minica` never needs to call the 
 secret retrieval function for existing PKCS#12 passwords when issuing a certificate. Have a look at `sample.py` for a script which generates
-a new CA, issues three TLS certificates uses this CA, revokes one of the certs and creates a CRL.
+a new CA, issues three TLS certificates using this CA, revokes one of the certs and creates a CRL.
