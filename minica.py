@@ -158,13 +158,12 @@ class CmdExecutor:
     def execute_command(self, command_str):
         out_channel = None
         
-        with open(os.devnull, "wb") as nothing:
-            if not self.allow_output:
-                out_channel = nothing
+        if not self.allow_output:
+            out_channel = subprocess.DEVNULL
 
-            ret_code = subprocess.call(command_str, shell=True, stdout=out_channel, stderr=out_channel)
-            if ret_code != 0:
-                raise(SSLCAException(self.exception_str))
+        ret_code = subprocess.call(command_str, shell=True, stdout=out_channel, stderr=out_channel)
+        if ret_code != 0:
+            raise(SSLCAException(self.exception_str))
 
 
 class SecretGetterRepo:
