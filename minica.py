@@ -155,13 +155,16 @@ class CmdExecutor:
     def exception_str(self, value):
         self._error_str = value
 
-    def execute_command(self, command_str):
+    def execute_command(self, command):
+        if not isinstance(command, list):
+            raise(SSLCAException("Wrong format for command arguments"))
+
         out_channel = None
         
         if not self.allow_output:
             out_channel = subprocess.DEVNULL
 
-        ret_code = subprocess.call(command_str, shell=True, stdout=out_channel, stderr=out_channel)
+        ret_code = subprocess.call(command, shell=False, stdout=out_channel, stderr=out_channel)
         if ret_code != 0:
             raise(SSLCAException(self.exception_str))
 
@@ -359,7 +362,7 @@ class NewCommand(Command):
         ca_cert_file = CA_HOME_DIRECTORY / dir_name / 'private' / 'CAcert.pem'
         cfg_file = CA_HOME_DIRECTORY / dir_name / 'private' / 'newca.cnf'
 
-        cmd = f'openssl genrsa -out "{ca_key_file}" -passout "pass:{password}" -aes256 -f4 {CA_KEY_BITS}'
+        cmd = ["openssl", "genrsa", "-out", ca_key_file, "-passout", f"pass:{password}", "-aes256", "-f4", str(CA_KEY_BITS)]
         exc.exception_str = 'Unable to generate private CA Key'
         exc.execute_command(cmd)
         
@@ -371,7 +374,7 @@ class NewCommand(Command):
         
         exts = 'ca_extensions'
 
-        cmd = f'openssl req -new -x509 -out "{ca_cert_file}" -key "{ca_key_file}" -days {validity} -set_serial {serial} -extensions {exts} -passin "pass:{password}" -config "{cfg_file}"'        
+        cmd = ["openssl", "req", "-new", "-x509", "-out", ca_cert_file, "-key", ca_key_file, "-days", str(validity), "-set_serial", str(serial), "-extensions", exts, "-passin", f"pass:{password}", "-config", cfg_file]
         exc.exception_str = 'Unable to create root certificate'
         exc.execute_command(cmd)
         
@@ -380,7 +383,7 @@ class NewCommand(Command):
         if (rootcert_filename != None) and (rootcert_filename != ""):
             self.report(f"Copying root certificte in DER format to '{rootcert_filename}'")
 
-            cmd = f'openssl x509 -in "{ca_cert_file}" -outform DER -out "{rootcert_filename}"'
+            cmd = ["openssl", "x509", "-in", ca_cert_file, "-outform", "DER", "-out", rootcert_filename]
             exc.exception_str = 'Unable to convert root cert to DER'
             exc.execute_command(cmd)
 
@@ -472,22 +475,22 @@ class OpenSSLCertIssuer:
             
             self.__report('Generating key pair ....')
 
-            cmd = f'openssl genrsa -out "{key_file}" -f4 {self.key_bits}'
+            cmd = ["openssl", "genrsa", "-out", key_file, "-f4", str(self.key_bits)]
             exc.exception_str = 'Generating private-key failed'
             exc.execute_command(cmd)
             
             self.__report('Done!')        
             self.__report(f"Issuing certificate for '{self.common_names[0]}' ...")
 
-            cmd = f'openssl req -new -out "{p10_request_file}" -key "{key_file}" -config "{cert_cfg_file}"'
+            cmd = ["openssl", "req", "-new", "-out", p10_request_file, "-key", key_file, "-config", cert_cfg_file]
             exc.exception_str = 'Creating CSR failed failed'
             exc.execute_command(cmd)
             
-            cmd = f'openssl ca -notext -config "{cert_cfg_file}" -in "{p10_request_file}" -out "{cert_file}" -passin "pass:{pass1}" -extensions {self.extensions_section} -name CA_default -batch'
+            cmd = ["openssl", "ca", "-notext", "-config", cert_cfg_file, "-in", p10_request_file, "-out", cert_file, "-passin", f"pass:{pass1}", "-extensions", self.extensions_section, "-name", "CA_default", "-batch"]
             exc.exception_str = 'Issuing certificate failed'
             exc.execute_command(cmd)
                 
-            cmd = f'openssl pkcs12 -inkey "{key_file}" -in "{cert_file}" -export -password "pass:{p12_pass1}" -out {pfx_file}'
+            cmd = ["openssl", "pkcs12", "-inkey", key_file, "-in", cert_file, "-export", "-password", f"pass:{p12_pass1}", "-out", pfx_file]
             exc.exception_str = 'Creating PFX file failed'
             exc.execute_command(cmd)            
             
@@ -626,14 +629,14 @@ class ChangeCAPwCommand(Command):
             self.report("Enter current password")
             old_password = self.get_secret_func(SEC_TYPE_CA)
 
-            cmd = f'openssl rsa -in "{ca_pri_key_file}" -passin "pass:{old_password}" -out "{temp_file}"'
+            cmd = ["openssl", "rsa", "-in", ca_pri_key_file, "-passin", f"pass:{old_password}", "-out", temp_file]
             exc.exception_str = 'Decrypting CA private key failed'
             exc.execute_command(cmd)
             
             self.report("Enter new password")
             new_password = self.get_new_secret_func(SEC_TYPE_CA)
 
-            cmd = f'openssl rsa -in "{temp_file}" -passout "pass:{new_password}" -aes256 -out "{ca_pri_key_file}"'
+            cmd = ["openssl", "rsa", "-in", temp_file, "-passout", f"pass:{new_password}", "-aes256", "-out", ca_pri_key_file]
             exc.exception_str = 'Encrypting CA private key failed'
             exc.execute_command(cmd)
 
@@ -728,7 +731,7 @@ class MakeCRLCommand(Command):
                         
             self.report('Generating CRL ....')
 
-            cmd = f'openssl ca -config "{ca_cfg_file}" -passin "pass:{pass1}" -name CA_default -gencrl -out {out_file}'
+            cmd = ["openssl", "ca", "-config", ca_cfg_file, "-passin", f"pass:{pass1}", "-name", "CA_default", "-gencrl", "-out", out_file]
             exc.exception_str = 'Generating CRL failed'
             exc.execute_command(cmd)
             
@@ -773,7 +776,7 @@ class MakeRevokeCommand(Command):
             self.report('Revoking cert ....')
             cert_file_to_revoke = CA_HOME_DIRECTORY / ca_name / 'certs' / f"{certfile}.pem"
 
-            cmd = f'openssl ca -config "{ca_config_file}" -name CA_default -passin "pass:{pass1}" -revoke "{cert_file_to_revoke}"'
+            cmd = ["openssl", "ca", "-config", ca_config_file, "-name", "CA_default", "-passin", f"pass:{pass1}", "-revoke", cert_file_to_revoke]
             exc.exception_str = f'Revocation of cert "{cert_file_to_revoke}" failed'
             exc.execute_command(cmd)
             
@@ -802,7 +805,7 @@ class ShowCommand(Command):
         exc = CmdExecutor(True)
         cert_file_to_show = CA_HOME_DIRECTORY / ca_name / 'certs' / f"{certfile}.pem"
 
-        cmd = f'openssl x509 -in "{cert_file_to_show}" -text'
+        cmd = ["openssl", "x509", "-in", cert_file_to_show, "-text"]
         exc.exception_str = f'Parsing cert "{cert_file_to_show}" failed'
         exc.execute_command(cmd)
 
