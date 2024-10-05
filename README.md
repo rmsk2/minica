@@ -21,7 +21,7 @@ As a consequence calling functions, which expected a return value (i.e. here a p
 `None` which was converted to the string `"None"` in string interpolations. 
 
 You can use the command `openssl pkcs12 -in cert.pfx > cert.pem` follwowed by 
-`openssl pkcs12 -in cert.pem -inkey cert.pem -out cert_new.pfx -export` to reencrypt affected PKCS#12 key stored. On the other hand 
+`openssl pkcs12 -in cert.pem -inkey cert.pem -out cert_new.pfx -export` to reencrypt affected PKCS#12 key stores. On the other hand 
 if you tried to import an affected PFX-file into a browser or other software the problem became apparent as the password which
 was assumed to be correct would not work.
 
