@@ -3,11 +3,11 @@ import base64
 
 CA_NAME = "Test CA"
 CA_ORG = "Test Org"
-CA_PW = ""
 
-minica.CDP_URL = 'http://crl.test.com/test-ca.crl'
 
 def new_secret(type):
+    global CA_PW
+
     if type == minica.SEC_TYPE_CA:
         CA_PW = minica.SecretGetterRepo.type_new_secret(type)
         return CA_PW
@@ -31,6 +31,7 @@ def divider():
 try:
     minica.REPO.use_new_getters("auto", existing_secret, new_secret)
     minica.set_ca_dir("./")
+    minica.CDP_URL = 'http://crl.test.com/test-ca.crl'
 
     generator = minica.NewCommand()
     server_issuer = minica.NewServerCommand()

@@ -230,10 +230,10 @@ class Command:
             print(message)
 
     def get_new_secret_func(self, type):
-        REPO.get_current()[1](type)
+        return REPO.get_current()[1](type)
 
     def get_secret_func(self, type):
-        REPO.get_current()[0](type)
+        return REPO.get_current()[0](type)
 
     @staticmethod    
     def print_exception(e):
@@ -338,7 +338,7 @@ class NewCommand(Command):
     
     def __make_root(self, dir_name, rootcert_filename):
         exc = CmdExecutor()
-        password = self.get_new_secret_func(SEC_TYPE_CA)     
+        password = self.get_new_secret_func(SEC_TYPE_CA)
         
         self.report('Generating CA key pair ....')
 

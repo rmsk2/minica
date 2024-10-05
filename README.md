@@ -138,9 +138,9 @@ type in a new CA password while generating the root certificate. The passwords f
 After inital manual entry of the CA password it is subsequently returned without manual intervention (see `existing_secret()`):
 
 ```py
-CA_PW = ""
-
 def new_secret(type):
+    global CA_PW
+
     if type == minica.SEC_TYPE_CA:
         CA_PW = minica.SecretGetterRepo.type_new_secret(type)
         return CA_PW
@@ -151,6 +151,7 @@ def new_secret(type):
             pw = pw_b.decode('ascii')
             print(f"PFX password: {pw}")
             return pw
+
 
 def existing_secret(type):
     return CA_PW
