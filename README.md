@@ -7,6 +7,13 @@ It is intended for issuing certificates in a home or lab setting and is not suit
 Consequently in order to keep things simple the root cert is used to issue end entity certificates without 
 an intermediate CA. At the moment `minica` only supports RSA.
 
+**Remark**: All published revisions before commit [`add4d86`](https://github.com/rmsk2/minica/commit/add4d866446674f0aad28cd522888bd10aedc827) 
+(05 october 2024) suffered from a bug which caused all passwords to be set to `None`. Use `minica pwchange` to
+change the CA private key password to a proper value if you were affected by this problem. Cause of the bug was
+that a `return` statement was missing in `Command.get_new_secret_func()` and `Command.get_secret_func()`. 
+As a consequence Calling functions which expected a return value (i.e. here a password) simply got the value 
+`None` which was converted to the string `"None"` in string interpolations.
+
 # The command line interface
 
 `minica` implements several commands which in turn require certain options. Here a summary of all the commands and

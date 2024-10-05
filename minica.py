@@ -250,7 +250,10 @@ class Command:
         except Exception as e:
             Command.print_exception(e)
             result = ERR_NOT_OK
-                
+        except KeyboardInterrupt as e:
+            Command.print_exception(e)
+            result = ERR_NOT_OK
+
         return result
     
     @property
@@ -591,6 +594,48 @@ class NewClientCommand(Command):
         self.make_client_cert(params.ca, params.cn, params.pfx, params.cdp)
 
 
+class ChangeCAPwCommand(Command):
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('pwchange', print_messages)
+        self.help_msg = '       pwchange --ca <caname>\n'
+    
+    def __parse_args_alt(self, args):
+        parser = argparse.ArgumentParser("minica change CA password command", "minica pwchange <options>", "Change password of CA private key")
+        parser.add_argument("-c", "--ca", required=True, help="Name of the CA")
+
+        return parser.parse_args(args[1:])
+
+    def make_pw_change(self, ca_name):
+        exc = CmdExecutor()
+        ca_pri_key_file = CA_HOME_DIRECTORY / ca_name / 'private' / 'CAkey.pem'
+        temp_file = CA_HOME_DIRECTORY / ca_name / 'temp' / 'CAkey_plain.pem'
+        
+        cleaner = FileCleaner([temp_file])
+
+        try:
+            self.report("Enter current password")
+            old_password = self.get_secret_func(SEC_TYPE_CA)
+
+            cmd = f'openssl rsa -in "{ca_pri_key_file}" -passin "pass:{old_password}" -out "{temp_file}"'
+            exc.exception_str = 'Decrypting CA private key failed'
+            exc.execute_command(cmd)
+            
+            self.report("Enter new password")
+            new_password = self.get_new_secret_func(SEC_TYPE_CA)
+
+            cmd = f'openssl rsa -in "{temp_file}" -passout "pass:{new_password}" -aes256 -out "{ca_pri_key_file}"'
+            exc.exception_str = 'Encryptng CA private key failed'
+            exc.execute_command(cmd)
+
+            self.report("Done!")
+        finally:
+            cleaner.clean()
+
+    def proc_int(self, args):
+        params = self.__parse_args_alt(args)
+        self.make_pw_change(params.ca)
+
+
 class NewMailCommand(Command):
     def __init__(self, print_messages = SHOW_PROG_OUTPUT):
         super().__init__('mailcrt', print_messages)
@@ -798,7 +843,7 @@ def run_cli(argv):
     exit_code = 0
     help = HelpCommand()
     
-    commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand()]
+    commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand(), ChangeCAPwCommand()]
     # help has to be the last command in the list
     commands.append(help)
     help.set_commands(commands)
