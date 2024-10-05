@@ -57,7 +57,7 @@ A server certificate can contain several SANs as specified by the `--cn` option.
 `CRLDistributionPoint` Extension is included in the certificate which points browsers or other software to a HTTP URL 
 where a Certificate Revocation List of the CA can be found (see below on how to set this URL and how to create a CRL). 
 
-When a server certificate is created the certificate and its corrresponding private RSA-key will not only be
+When a server certificate is created the certificate and its corresponding private RSA-key will not only be
 returned in PKCS#12 or PFX format but also in PEM format. When the option `--split` is present, then separate
 PEM files are created for the certificate and the key. The names of both files are derived from the value of the `--pem`
 option. If `--split` is not given private key and certificate are appended to each other and stored in the same file.
