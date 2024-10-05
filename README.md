@@ -133,9 +133,9 @@ a function which is called when a previosly set password is needed again. The th
 a new password. Setting the property  `minica.REPO.current` lets you change between different sets of secret retrieval functions as
 specified by their ids. The default value of `minica.REPO.current` is `default`.
 
-Here an example which shows how to make use of alternative secret retrieval functions. In this example the user has to type in a new 
-CA password while generating the root certificate. The passwords for new end entity certificates are generated automatically. After
-inital manual entry of the CA password it is subsequently returned without manual intervention:
+Here an example which shows how to make use of alternative secret retrieval functions. In this example (see `new_secret()`) the user has to 
+type in a new CA password while generating the root certificate. The passwords for new end entity certificates are generated automatically. 
+After inital manual entry of the CA password it is subsequently returned without manual intervention (see `existing_secret()`):
 
 ```py
 CA_PW = ""
