@@ -33,6 +33,8 @@ The following commands are allowed:
        revoke --ca <caname> --serial <serial number of cert to revoke>
        list --ca <caname>
        show --ca <caname> --serial <serial number of cert to show>
+       pwchange --ca <caname>
+       version The version command has no options
        help The help command has no options
 ```
 

@@ -13,6 +13,7 @@ import subprocess
 
 ERR_OK = 0
 ERR_NOT_OK = 100
+PROG_VERSION = "1.1.0"
 
 SEC_TYPE_CA = "CA"
 SEC_TYPE_P12 = "PKCS#12"
@@ -285,7 +286,17 @@ class HelpCommand(Command):
         
         sys.stdout.write(help_message)
         return ERR_OK
+
+
+class VersionCommand(Command):
+    def __init__(self, print_messages = SHOW_PROG_OUTPUT):
+        super().__init__('version', print_messages)
+        self.help_msg = '       version The version command has no options\n'
     
+    def process(self, args):
+        self.report(PROG_VERSION)
+        return ERR_OK
+
 
 class NewCommand(Command):
     def __init__(self, print_messages = SHOW_PROG_OUTPUT):
@@ -843,7 +854,7 @@ def run_cli(argv):
     exit_code = 0
     help = HelpCommand()
     
-    commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand(), ChangeCAPwCommand()]
+    commands = [NewCommand(), NewClientCommand(), NewServerCommand(), NewMailCommand(), MakeCRLCommand(), MakeRevokeCommand(), ListCommand(), ShowCommand(), ChangeCAPwCommand(), VersionCommand()]
     # help has to be the last command in the list
     commands.append(help)
     help.set_commands(commands)
