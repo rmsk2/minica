@@ -7,18 +7,23 @@ It is intended for issuing certificates in a home or lab setting and is not suit
 Consequently in order to keep things simple the root cert is used to issue end entity certificates without 
 an intermediate CA. At the moment `minica` only supports RSA.
 
-**Remark**: All published revisions beginning with commit [6695e31](https://github.com/rmsk2/minica/commit/6695e31044862a7acba72233101215b2f5d282f7) 
-and before commit [`add4d86`](https://github.com/rmsk2/minica/commit/add4d866446674f0aad28cd522888bd10aedc827) 
-(commit from 05 october 2024, the repo was made public only one day before that date) suffered from a bug which caused all passwords 
-to be set to `None`. This was difficult to spot, because the bug only changed the expected behaviour when a wrong password was
-emntered.
+**Remark**: All published revisions beginning with commit [4389afa](https://github.com/rmsk2/minica/commit/4389afabbf7a307b7d027ebfe10dbbb25fb8813a) 
+and before commit [add4d86](https://github.com/rmsk2/minica/commit/add4d866446674f0aad28cd522888bd10aedc827) 
+suffered from a bug which caused all passwords to be set to `None`. Commit add4d86 fixed the bug and was created on 05 october 2024. The repo 
+was made public only one day before that date.
 
-You can use `minica pwchange` to change the CA private key password to a proper value if you were affected by this 
-problem. Cause of the bug was that a `return` statement was missing in `Command.get_new_secret_func()` and `Command.get_secret_func()`. 
+The problem was difficult to spot, because the bug only changed the expected behaviour of `minica` when one knowningly entered a wrong 
+password. You can use `minica pwchange` to change the CA private key password to a proper value if you were affected by this problem. 
+
+Cause of the bug was that a `return` statement was missing in `Command.get_new_secret_func()` and `Command.get_secret_func()`. These
+functions were introduced in commit [6695e31](https://github.com/rmsk2/minica/commit/6695e31044862a7acba72233101215b2f5d282f7).
 As a consequence calling functions, which expected a return value (i.e. here a password), simply got the value 
-`None` which was converted to the string `"None"` in string interpolations. You can use the command 
-`openssl pkcs12 -in cert.pfx > cert.pem` follwowed by 
-`openssl pkcs12 -in cert.pem -inkey cert.pem -out cert_new.pfx -export` to reencrypt created certificates.
+`None` which was converted to the string `"None"` in string interpolations. 
+
+You can use the command `openssl pkcs12 -in cert.pfx > cert.pem` follwowed by 
+`openssl pkcs12 -in cert.pem -inkey cert.pem -out cert_new.pfx -export` to reencrypt affected certificates. On the other hand if
+you tried to import an affected PFX-file into a browser or other software the problem became apparent as the password which
+was assumed to be correct would not work.
 
 # The command line interface
 
