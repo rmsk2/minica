@@ -31,7 +31,7 @@ def divider():
 try:
     minica.REPO.use_new_getters("auto", existing_secret, new_secret)
     minica.set_ca_dir("./")
-    
+
     generator = minica.NewCommand()
     server_issuer = minica.NewServerCommand()
     revoker = minica.MakeRevokeCommand()
@@ -44,7 +44,7 @@ try:
     server_issuer.make_server_cert(CA_NAME, ["server1", "server1.test.com"], "server1", "server1.pfx", True, True)    
     
     divider()
-    server_issuer.make_server_cert(CA_NAME, ["server2.test.conm", ], "server2", "server2.pfx", False, True)
+    server_issuer.make_server_cert(CA_NAME, ["server2.test.conm"], "server2", "server2.pfx", False, True)
     
     divider()
     server_issuer.make_server_cert(CA_NAME, ["revoke.test.com", "revoke"], "revoke", "revoke.pfx", False, True)
