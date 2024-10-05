@@ -1,5 +1,6 @@
 import minica
 import base64
+import secrets
 
 CA_NAME = "Test CA"
 CA_ORG = "Test Org"
@@ -12,12 +13,11 @@ def new_secret(type):
         CA_PW = minica.SecretGetterRepo.type_new_secret(type)
         return CA_PW
     else:
-        with open("/dev/urandom", "rb") as urandom:
-            raw = urandom.read(12)
-            pw_b = base64.b64encode(raw, b"!$")
-            pw = pw_b.decode('ascii')
-            print(f"PFX password: {pw}")
-            return pw
+        raw = secrets.token_bytes(12)
+        pw_b = base64.b64encode(raw, b"!$")
+        pw = pw_b.decode('ascii')
+        print(f"PFX password: {pw}")
+        return pw
 
 
 def existing_secret(type):
