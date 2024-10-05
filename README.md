@@ -3,7 +3,7 @@
 A Python script that allows you to run a mini CA based on OpenSSL. This in turn has the consequence
 that OpenSSL has to be installed  on your system, and it has to be in the path of the user who is calling `minica`.
 One can use `minica` as a command line program or directly in Python code after a corresponding `import minica`. 
-It is intended for issuing certificates in a home or lab setting and is not suited for large deployments.
+It is intended for issuing certificates in a home or lab setting and is not suitable for large deployments.
 Consequently in order to keep things simple the root cert is used to issue end entity certificates without 
 an intermediate CA. At the moment `minica` only supports RSA.
 
