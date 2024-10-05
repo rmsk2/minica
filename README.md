@@ -12,7 +12,9 @@ an intermediate CA. At the moment `minica` only supports RSA.
 change the CA private key password to a proper value if you were affected by this problem. Cause of the bug was
 that a `return` statement was missing in `Command.get_new_secret_func()` and `Command.get_secret_func()`. 
 As a consequence Calling functions which expected a return value (i.e. here a password) simply got the value 
-`None` which was converted to the string `"None"` in string interpolations.
+`None` which was converted to the string `"None"` in string interpolations. You can use the command 
+`openssl pkcs12 -in cert.pfx > cert.pem` follwowed by 
+`openssl pkcs12 -in cert.pem -inkey cert.pem -out cert_new.pfx -export` to reencrypt created certificates.
 
 # The command line interface
 
