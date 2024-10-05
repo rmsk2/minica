@@ -9,9 +9,12 @@ an intermediate CA. At the moment `minica` only supports RSA.
 
 **Remark**: All published revisions beginning with commit [6695e31](https://github.com/rmsk2/minica/commit/6695e31044862a7acba72233101215b2f5d282f7) 
 and before commit [`add4d86`](https://github.com/rmsk2/minica/commit/add4d866446674f0aad28cd522888bd10aedc827) 
-(05 october 2024) suffered from a bug which caused all passwords to be set to `None`. You can use `minica pwchange` to
-change the CA private key password to a proper value if you were affected by this problem. Cause of the bug was
-that a `return` statement was missing in `Command.get_new_secret_func()` and `Command.get_secret_func()`. 
+(commit from 05 october 2024, the repo was made public only one day before that date) suffered from a bug which caused all passwords 
+to be set to `None`. This was difficult to spot, because the bug only changed the expected behaviour when a wrong password was
+emntered.
+
+You can use `minica pwchange` to change the CA private key password to a proper value if you were affected by this 
+problem. Cause of the bug was that a `return` statement was missing in `Command.get_new_secret_func()` and `Command.get_secret_func()`. 
 As a consequence calling functions, which expected a return value (i.e. here a password), simply got the value 
 `None` which was converted to the string `"None"` in string interpolations. You can use the command 
 `openssl pkcs12 -in cert.pfx > cert.pem` follwowed by 
