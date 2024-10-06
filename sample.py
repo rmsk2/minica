@@ -36,7 +36,9 @@ try:
     generator = minica.NewCommand()
     server_issuer = minica.NewServerCommand()
     revoker = minica.MakeRevokeCommand()
-    crl = minica.MakeCRLCommand()
+    # Suppress textual output for this command by setting print_messages to False in
+    # constructor
+    crl = minica.MakeCRLCommand(False)
 
     divider()
     generator.make_new(CA_NAME, CA_ORG, f"{CA_NAME}_root.crt")
