@@ -82,6 +82,35 @@ The serial numbers used in a revocation would be `02`, `03` or `04`. Finally the
 to look at a parsed version of the certificate specified by its serial number, where the serial number is determined in 
 the same way as illustrated above.
 
+# Example: Generating a CA, a server and a client certificate
+
+Let's say we want to create a new CA with the common name `Private TLS CA` and the organisation name `At home` in the
+directory into which `minica` was cloned. As a first step we would issue the following command:
+
+```
+python3 minica.py new --ca "Private TLS CA" --org "At home" --rootcert private_root.crt
+```
+
+which creates the CA subdirectory `Private TLS CA` in the `CADATA` folder, generates a 4096 bit RSA key pair and stores the
+newly created root certificate in DER format in the file `private_root.crt`. The certificate is valid for five years.
+Let's further assume we want to create a TLS server certificate for the machine `testerver.athome.com` which is also known as 
+`testserver`. For that we would use the command
+
+```
+python3 minica.py srvcrt --ca "Private TLS CA" --cn testserver.athome.com testserver --pem testserver --split --pfx testserver.pfx
+```
+
+This creates a new 3072 bit RSA key pair as well as the files `testserver_key.pem`, `testserver_crt.pem` and `testserver.pfx`. The 
+PEM  files or alternatively the PFX file can be used to configure your webserver. The new server certificate has a validity period of 
+one year and two SANs. Finally we could create a TLS client certificate for mTLS. This can be achieved via the command
+
+```
+python3 minica.py clientcrt --ca "Private TLS CA" --cn Testuser --pfx testuser.pfx
+```
+
+The client certificate can then be found in the file `testuser.pfx` and is also valid for one year. If you want to customize the 
+defaults for key lengths, validity periods or other behaviour see below.
+
 # Customizing the behaviour of `minica`
 
 The following defaults are defined in the script. Please change them to suit your needs:
@@ -118,7 +147,14 @@ SHOW_PROG_OUTPUT = True
 Additionally the following environment variables can be set in order to influence the behaviour of `minica`. If the variable
 `MINICA_VERB` is set to a value then the full stack trace of exceptions is propagated and printed to the command line, which
 can be useful to diagnose problems. The variable `MINICA_DIR` can be used to override the value of `CA_BASE_DIR` during 
-runtime.
+runtime. If you uncomment the line
+
+```
+#REPO.use_new_getters("auto", alternate_existing_secret, alternate_new_secret)
+```
+
+at the end of `minica.py` then `minica` creates the PFX passwords for all end entity certificates for you and prints them to the 
+console.
 
 # Using `minica` in Python code
 

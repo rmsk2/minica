@@ -10,6 +10,8 @@ import traceback
 import argparse
 import shutil
 import subprocess
+import secrets
+import base64
 
 ERR_OK = 0
 ERR_NOT_OK = 100
@@ -33,13 +35,13 @@ ROOT_VALID_YEARS = 5
 ROOT_SERIAL = 1
 CRL_VALID_DAYS = 30
 DEFAULT_COUNTRY = 'DE'
-DEFAULT_OU = 'Wohnzimmer'
+DEFAULT_OU = 'Users'
 DEFAULT_HASH = 'sha256'
 CDP_URL = 'http://test/ca/crl.crl'
 #
 # Program config
 #
-CA_BASE_DIR = './SSL-CA/'
+CA_BASE_DIR = './CADATA/'
 # Name of optional environment variable which specifies path to base dir if set
 CA_ENV = 'MINICA_DIR'
 SHOW_OPENSSL_OUTPUT = False
@@ -852,6 +854,21 @@ def set_ca_dir(new_dir):
     CA_HOME_DIRECTORY = pathlib.Path(new_dir)
 
 
+def alternate_new_secret(type):
+    if type == SEC_TYPE_CA:
+        return SecretGetterRepo.type_new_secret(SEC_TYPE_CA)
+    else:
+        raw = secrets.token_bytes(12)
+        pw_b = base64.b64encode(raw, b"!$")
+        pw = pw_b.decode('ascii')
+        print(f"PFX password: {pw}")
+        return pw
+
+
+def alternate_existing_secret(type):
+    return SecretGetterRepo.type_existing_secret(type)
+
+
 def run_cli(argv):
     exit_code = 0
     help = HelpCommand()
@@ -875,4 +892,5 @@ def run_cli(argv):
 init()
 
 if __name__ == '__main__':
+    #REPO.use_new_getters("auto", alternate_existing_secret, alternate_new_secret)
     run_cli(sys.argv)
