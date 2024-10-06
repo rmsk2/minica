@@ -16,7 +16,8 @@ The problem was difficult to spot, because the bug only changed the expected beh
 password. You can use `minica pwchange` to change the CA private key password to a proper value if you were affected by this problem. 
 
 This bug was caused by missing `return` statements in `Command.get_new_secret_func()` and `Command.get_secret_func()`. These
-functions were introduced in commit [dba1217](https://github.com/rmsk2/minica/commit/dba1217015a7d27f88e812b1d23148ca8402839d) when
+functions were introduced in commit [6695e31](https://github.com/rmsk2/minica/commit/6695e31044862a7acba72233101215b2f5d282f7) 
+and last modified in commit [dba1217](https://github.com/rmsk2/minica/commit/dba1217015a7d27f88e812b1d23148ca8402839d) when
 the repo was still private. As a consequence calling functions, which expected a return value (i.e. here a password), simply got the value 
 `None` which was converted to the string `"None"` in string interpolations. 
 
