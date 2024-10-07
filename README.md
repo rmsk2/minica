@@ -130,13 +130,13 @@ ROOT_VALID_YEARS = 5
 ROOT_SERIAL = 1
 CRL_VALID_DAYS = 30
 DEFAULT_COUNTRY = 'DE'
-DEFAULT_OU = 'Wohnzimmer'
+DEFAULT_OU = 'Users'
 DEFAULT_HASH = 'sha256'
 CDP_URL = 'http://test/ca/crl.crl'
 #
 # Program config
 #
-CA_BASE_DIR = './SSL-CA/'
+CA_BASE_DIR = './CADATA/'
 # Name of optional environment variable which specifies path to base dir if set
 CA_ENV = 'MINICA_DIR'
 SHOW_OPENSSL_OUTPUT = False
