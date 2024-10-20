@@ -7,24 +7,8 @@ It is intended for issuing certificates in a home or lab setting and is not suit
 Consequently in order to keep things simple the root cert is used to issue end entity certificates without 
 an intermediate CA. At the moment `minica` only supports RSA.
 
-**Remark**: All published revisions beginning with commit [4389afa](https://github.com/rmsk2/minica/commit/4389afabbf7a307b7d027ebfe10dbbb25fb8813a) 
-and before commit [add4d86](https://github.com/rmsk2/minica/commit/add4d866446674f0aad28cd522888bd10aedc827) 
-suffered from a bug which caused all passwords to be set to `None`. Commit add4d86 fixed the bug and was created on 05 october 2024. The repo 
-was made public only one day before that date.
-
-The problem was difficult to spot, because the bug only changed the expected behaviour of `minica` when one knowningly entered a wrong 
-password. You can use `minica pwchange` to change the CA private key password to a proper value if you were affected by this problem. 
-
-This bug was caused by missing `return` statements in `Command.get_new_secret_func()` and `Command.get_secret_func()`. These
-functions were introduced in commit [6695e31](https://github.com/rmsk2/minica/commit/6695e31044862a7acba72233101215b2f5d282f7) 
-and last modified in commit [dba1217](https://github.com/rmsk2/minica/commit/dba1217015a7d27f88e812b1d23148ca8402839d) when
-the repo was still private. As a consequence calling functions, which expected a return value (i.e. here a password), simply got the value 
-`None` which was converted to the string `"None"` in string interpolations. 
-
-You can use the command `openssl pkcs12 -in cert.pfx > cert.pem` follwowed by 
-`openssl pkcs12 -in cert.pem -inkey cert.pem -out cert_new.pfx -export` to reencrypt affected PKCS#12 key stores. On the other hand 
-if you tried to import an affected PFX-file into a browser or other software the problem became apparent as the password which
-was assumed to be correct would not work.
+**Remark**: If the  version of `minica` you use does not have a `version` command please update to the latest version
+and read the section which can be found [here](#a-bug-in-password-processing).
 
 # The command line interface
 
@@ -219,3 +203,27 @@ minica.REPO.use_new_getters("auto", existing_secret, new_secret)
 The `existing_secret()` function does not distinguish between `SEC_TYPE_CA` and `SEC_TYPE_P12` passwords as `minica` never needs to call the 
 secret retrieval function for existing PKCS#12 passwords when issuing a certificate. Have a look at `sample.py` for a script which generates
 a new CA, issues three TLS certificates using this CA, revokes one of the certs and creates a CRL.
+
+# A bug in password processing
+
+All published revisions beginning with commit [4389afa](https://github.com/rmsk2/minica/commit/4389afabbf7a307b7d027ebfe10dbbb25fb8813a) 
+and before commit [add4d86](https://github.com/rmsk2/minica/commit/add4d866446674f0aad28cd522888bd10aedc827) 
+suffered from a bug which caused all passwords to be set to the string `None`. Commit add4d86 fixed the bug and was created on 05 october 2024. 
+The repo was made public only one day before that date. So, given the low volume of traffic that this repo experiences, it is essence very 
+unlikely that you (or in fact anyone) was affected by this problem. Nontheless if you were you can use `minica pwchange` to change the CA 
+private key password to a proper value. 
+
+You additionally can use the command `openssl pkcs12 -in cert.pfx > cert.pem` follwowed by 
+`openssl pkcs12 -in cert.pem -inkey cert.pem -out cert_new.pfx -export` to reencrypt affected PKCS#12 key stores. On the other hand 
+if you tried to import such a PFX-file into a browser or other software the problem became apparent as the password which
+was assumed to be correct would not work.
+
+The problem was difficult to spot, because the bug only changed the expected behaviour of `minica` when one knowningly entered a wrong 
+password. 
+
+This bug was caused by missing `return` statements in `Command.get_new_secret_func()` and `Command.get_secret_func()`. These
+functions were introduced in commit [6695e31](https://github.com/rmsk2/minica/commit/6695e31044862a7acba72233101215b2f5d282f7) 
+and last modified in commit [dba1217](https://github.com/rmsk2/minica/commit/dba1217015a7d27f88e812b1d23148ca8402839d) when
+the repo was still private. As a consequence calling functions, which expected a return value (i.e. here a password), simply got the value 
+`None` which was converted to the string `"None"` in string interpolations. 
+
