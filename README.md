@@ -54,7 +54,7 @@ purposes (type `encauth`).
 The `crl` command offers the possibility to create a new CRL for the CA. A CRL lists all the certificates which have been
 revoked via the `revoke` command. During a revocation the certificate serial number of the certificate which is to be
 invalidated has to be specified via the `--serial` option. This serial number has to be identical to the serial number 
-of the certificate as printed by the `list` command. An exmaple
+of the certificate as printed by the `list` command. An example
 
 ```
 V	251004154646Z		02	unknown	/C=DE/O=Daheim/CN=xxxxxxxxxx
