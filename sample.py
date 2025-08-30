@@ -29,7 +29,7 @@ def divider():
 
 
 try:
-    minica.REPO.use_new_getters("auto", existing_secret, new_secret)
+    minica.REPO.use_new_getters("auto-ca-cache", existing_secret, new_secret)
     minica.set_ca_dir("./")
     minica.CDP_URL = 'http://crl.test.com/test-ca.crl'
 
