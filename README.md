@@ -20,7 +20,7 @@ minica <command> <options>
 The following commands are allowed:
        new --ca <name> --org <orgname> [--rootcert <filename>]
        clientcrt --ca <caname> --cn <name> --pfx <pfxfile> [--cdp]
-       srvcrt --ca <caname> --cn <name> [<name>, ...] --pem <pemfile> --pfx <pfxfile> [--cdp] [--split]
+       srvcrt --ca <caname> --cn <name> [<name> ...] --pem <pemfile> --pfx <pfxfile> [--cdp] [--split]
        mailcrt --ca <caname> --cn <name> --mail <mail address> --type <encauth|enc|auth> --pfx <pfxfile> [--cdp]
        crl --ca <caname>
        revoke --ca <caname> --serial <serial number of cert to revoke>
@@ -161,7 +161,8 @@ also overrides a value deduced from a potentially set `MINICA_DIR` environment v
 ## Automating password entry
 
 Passwords are used by `minica` to encrypt the private keys of the CA and of newly generated end entitiy certificates. The default
-behaviour is to the let the user type in new or previously set passwords. This can be a problem when automating certificate issuance
+behaviour is to the let the user type in new or previously set passwords for the CA private key and to generate the PFX passwords
+for end entity certficates automatically and randomly. This can be a problem when automating certificate issuance
 during tests or similar tasks. It is therefore easy to change this behavior. The global variable `minica.REPO` contains a repository which
 manages a set of alternative functions for secret retrieval. There are functions to retrieve existing passwords and new passwords.
 Additionally there are two types of passwords `minica.SEC_TYPE_CA` and `minica.SEC_TYPE_P12`. The first type is intended 
@@ -172,7 +173,7 @@ Through the function call `minica.REPO.use_new_getters("id", existing_secret_fun
 functions can be activated. The first parameter can be set to any value which makes sense in your scenario. The second parameter has to contain
 a function which is called when a previosly set password is needed again. The third parameter has to specifiy a function which generates
 a new password. Setting the property  `minica.REPO.current` lets you change between different sets of secret retrieval functions as
-specified by their ids. The default value of `minica.REPO.current` is `default`.
+specified by their ids. The default value of `minica.REPO.current` is `auto`.
 
 Here an example which shows how to make use of alternative secret retrieval functions. In this example (see `new_secret()`) the user has to 
 type in a new CA password while generating the root certificate. The passwords for new end entity certificates are generated automatically. 
@@ -197,7 +198,7 @@ def existing_secret(type):
     return CA_PW
 
 
-minica.REPO.use_new_getters("auto", existing_secret, new_secret)
+minica.REPO.use_new_getters("auto-ca-cache", existing_secret, new_secret)
 ```
 
 The `existing_secret()` function does not distinguish between `SEC_TYPE_CA` and `SEC_TYPE_P12` passwords as `minica` never needs to call the 

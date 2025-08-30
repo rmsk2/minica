@@ -15,7 +15,7 @@ import base64
 
 ERR_OK = 0
 ERR_NOT_OK = 100
-PROG_VERSION = "1.1.0"
+PROG_VERSION = "1.1.1"
 
 SEC_TYPE_CA = "CA"
 SEC_TYPE_P12 = "PKCS#12"
@@ -197,7 +197,23 @@ class SecretGetterRepo:
         self._repo = {}
         self.current = "default"
         self.add("default", SecretGetterRepo.type_existing_secret, SecretGetterRepo.type_new_secret)
-    
+        self.add("auto", SecretGetterRepo.alternate_existing_secret, SecretGetterRepo.alternate_new_secret)
+
+    @staticmethod
+    def alternate_new_secret(type):
+        if type == SEC_TYPE_CA:
+            return SecretGetterRepo.type_new_secret(SEC_TYPE_CA)
+        else:
+            raw = secrets.token_bytes(12)
+            pw_b = base64.b64encode(raw, b"!$")
+            pw = pw_b.decode('ascii')
+            print(f"PFX password: {pw}")
+            return pw
+
+    @staticmethod
+    def alternate_existing_secret(type):
+        return SecretGetterRepo.type_existing_secret(type)
+
     @staticmethod
     def type_new_secret(type):
         pass1 = getpass.getpass(f'{type} Password: ')
@@ -854,21 +870,6 @@ def set_ca_dir(new_dir):
     CA_HOME_DIRECTORY = pathlib.Path(new_dir)
 
 
-def alternate_new_secret(type):
-    if type == SEC_TYPE_CA:
-        return SecretGetterRepo.type_new_secret(SEC_TYPE_CA)
-    else:
-        raw = secrets.token_bytes(12)
-        pw_b = base64.b64encode(raw, b"!$")
-        pw = pw_b.decode('ascii')
-        print(f"PFX password: {pw}")
-        return pw
-
-
-def alternate_existing_secret(type):
-    return SecretGetterRepo.type_existing_secret(type)
-
-
 def run_cli(argv):
     exit_code = 0
     help = HelpCommand()
@@ -892,5 +893,5 @@ def run_cli(argv):
 init()
 
 if __name__ == '__main__':
-    #REPO.use_new_getters("auto", alternate_existing_secret, alternate_new_secret)
+    REPO.current = "auto"
     run_cli(sys.argv)
